@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Manga Autos | Curated Performance.</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
+
     <script>
       tailwind.config = {
         theme: {
@@ -34,64 +39,607 @@
         }
       }
     </script>
+
     <style>
-      /* Custom Scrollbar - Minimal */
-      ::-webkit-scrollbar {
-        width: 6px;
+      /* --- Base Styles --- */
+      body {
+        background-color: #0f1012;
+        color: #f5f5f0;
       }
-      ::-webkit-scrollbar-track {
-        background: #0f1012;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #333;
-        border-radius: 0px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #cfa78a;
-      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: #0f1012; }
+      ::-webkit-scrollbar-thumb { background: #333; }
+      ::-webkit-scrollbar-thumb:hover { background: #cfa78a; }
       
+      /* Utilities */
       .glass-panel {
         background: rgba(15, 16, 18, 0.85);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       }
+      
+      .text-balance { text-wrap: balance; }
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-      .text-balance {
-        text-wrap: balance;
-      }
+      /* --- Animations --- */
       
       /* Grain Overlay */
       .bg-grain {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 9999;
-        opacity: 0.03;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none; z-index: 9999; opacity: 0.03;
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
       }
+
+      /* Scroll Reveal */
+      .reveal {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: all 1s ease-out;
+      }
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Hero Fade */
+      .hero-slide {
+        position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s ease-in-out;
+        transform: scale(1.05);
+      }
+      .hero-slide.active { opacity: 1; transform: scale(1); }
+      
+      /* Marquee Animation */
+      @keyframes scroll {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .marquee-content {
+        display: flex;
+        animation: scroll 40s linear infinite;
+        width: max-content;
+      }
+
+      /* Loading Screen */
+      #loader {
+        position: fixed; inset: 0; z-index: 100; background: #0f1012;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: opacity 0.8s ease-in-out;
+      }
+      #loader h1 {
+        color: #f5f5f0; /* Fallback color */
+      }
+      #loader.hidden { opacity: 0; pointer-events: none; }
+      
+      .loader-line {
+        height: 1px; background: #cfa78a; width: 0;
+        transition: width 0.8s ease-in-out;
+      }
+      #loader.loaded .loader-line { width: 60px; }
+
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "framer-motion": "https://esm.sh/framer-motion@^12.23.26",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-    "vite": "https://esm.sh/vite@^7.3.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
-  }
-}
-</script>
 </head>
-  <body class="bg-brand-charcoal text-brand-bone antialiased selection:bg-brand-copper selection:text-brand-charcoal">
+<body class="antialiased selection:bg-brand-copper selection:text-brand-charcoal">
     <div class="bg-grain"></div>
-    <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
-  </body>
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <h1 class="text-3xl font-display font-light tracking-[0.3em] text-brand-bone uppercase animate-pulse">
+            Manga Autos
+        </h1>
+        <div class="loader-line mt-4"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-700 py-8 bg-transparent">
+        <div class="container mx-auto px-6 md:px-12 flex justify-between items-center">
+            <!-- Logo -->
+            <a href="#" class="group relative z-50" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                <span class="font-display font-medium text-2xl tracking-[0.1em] text-brand-bone group-hover:text-brand-copper transition-colors duration-500">
+                    MANGA AUTOS
+                </span>
+            </a>
+
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex space-x-12">
+                <a href="#inventory" class="nav-link text-xs uppercase tracking-[0.2em] font-medium text-brand-bone/70 hover:text-brand-copper transition-colors duration-500">Collection</a>
+                <a href="#about" class="nav-link text-xs uppercase tracking-[0.2em] font-medium text-brand-bone/70 hover:text-brand-copper transition-colors duration-500">About Us</a>
+                <a href="#features" class="nav-link text-xs uppercase tracking-[0.2em] font-medium text-brand-bone/70 hover:text-brand-copper transition-colors duration-500">Services</a>
+                <a href="#contact" class="nav-link text-xs uppercase tracking-[0.2em] font-medium text-brand-bone/70 hover:text-brand-copper transition-colors duration-500">Inquire</a>
+            </div>
+
+            <!-- Mobile Toggle -->
+            <button id="mobile-toggle" class="md:hidden text-brand-bone hover:text-brand-copper transition-colors z-50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+        </div>
+
+        <!-- Mobile Menu Overlay -->
+        <div id="mobile-menu" class="fixed inset-0 bg-brand-charcoal z-40 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500">
+             <div class="flex flex-col space-y-8 text-center">
+                <a href="#inventory" class="mobile-link text-3xl font-display text-brand-bone hover:text-brand-copper hover:italic transition-all">Collection</a>
+                <a href="#about" class="mobile-link text-3xl font-display text-brand-bone hover:text-brand-copper hover:italic transition-all">About Us</a>
+                <a href="#features" class="mobile-link text-3xl font-display text-brand-bone hover:text-brand-copper hover:italic transition-all">Services</a>
+                <a href="#contact" class="mobile-link text-3xl font-display text-brand-bone hover:text-brand-copper hover:italic transition-all">Inquire</a>
+             </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        
+        <!-- Hero Section -->
+        <section id="hero" class="relative h-screen w-full overflow-hidden flex items-center justify-center bg-brand-charcoal">
+            <!-- Slideshow Container -->
+            <div id="hero-slides" class="absolute inset-0 z-0">
+                <div class="absolute inset-0 bg-black/40 z-10 pointer-events-none"></div>
+                <!-- Slides injected via JS -->
+            </div>
+
+            <!-- Content -->
+            <div class="relative z-20 container mx-auto px-6 md:px-12 flex flex-col items-center text-center h-full justify-center pointer-events-none">
+                <div id="hero-text-container" class="min-h-[250px] flex flex-col items-center justify-center transition-all duration-1000">
+                    <span id="hero-subtitle" class="text-brand-bone/80 text-xs md:text-sm uppercase tracking-[0.3em] font-light mb-6 block transition-opacity duration-1000">Est. 2015</span>
+                    <h1 class="text-5xl md:text-7xl lg:text-9xl font-display font-medium text-brand-bone mb-6 leading-tight tracking-tight">
+                        <span id="hero-title">BEST IN TOWN</span> <br/> 
+                        <span id="hero-highlight" class="text-2xl md:text-4xl italic text-brand-copper font-normal tracking-normal block mt-4">PREMIUM SELECTION</span>
+                    </h1>
+                </div>
+
+                <div class="mt-8 pointer-events-auto opacity-0 animate-[fadeIn_1s_ease-out_1s_forwards]">
+                    <a href="#inventory" class="inline-block px-10 py-4 border border-brand-bone/30 text-brand-bone text-xs uppercase tracking-[0.25em] transition-all duration-500 hover:bg-brand-copper hover:border-brand-copper hover:text-brand-charcoal backdrop-blur-sm cursor-pointer z-50">
+                        View Collection
+                    </a>
+                </div>
+
+                <!-- Indicators -->
+                <div id="slide-indicators" class="absolute bottom-24 md:bottom-32 flex space-x-4 z-30 pointer-events-auto">
+                    <!-- Dots injected via JS -->
+                </div>
+            </div>
+            
+            <div class="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-brand-charcoal via-brand-charcoal/60 to-transparent z-10 pointer-events-none"></div>
+        </section>
+
+        <!-- Brands Marquee -->
+        <section class="py-12 bg-brand-charcoal border-b border-brand-bone/5 relative overflow-hidden">
+            <div class="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-brand-charcoal to-transparent z-10"></div>
+            <div class="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-brand-charcoal to-transparent z-10"></div>
+            
+            <div class="flex overflow-hidden">
+                <div class="marquee-content flex gap-16 md:gap-24 items-center pr-16 md:pr-24">
+                    <!-- Brands Content (Duplicated for loop) -->
+                     <span class="brand-item font-display text-xl md:text-2xl tracking-wide font-medium text-brand-bone opacity-30">Mercedes-Benz</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">LAMBORGHINI</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">PORSCHE</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">FERRARI</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">AUDI</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">BMW</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">BENTLEY</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">ROLLS-ROYCE</span>
+                     
+                     <!-- Duplicate for Loop -->
+                     <span class="brand-item font-display text-xl md:text-2xl tracking-wide font-medium text-brand-bone opacity-30">Mercedes-Benz</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">LAMBORGHINI</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">PORSCHE</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">FERRARI</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">AUDI</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">BMW</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">BENTLEY</span>
+                     <span class="brand-item font-sans text-lg md:text-xl font-bold tracking-[0.25em] uppercase text-brand-bone opacity-30">ROLLS-ROYCE</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="py-24 md:py-32 bg-brand-charcoal relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-brand-graphite/50 to-transparent pointer-events-none"></div>
+            <div class="container mx-auto px-6 md:px-12 relative z-10">
+                <div class="flex flex-col lg:flex-row gap-16 lg:gap-24 items-center">
+                    <!-- Image -->
+                    <div class="w-full lg:w-1/2 relative reveal">
+                        <div class="relative aspect-[4/5] md:aspect-square lg:aspect-[4/5] overflow-hidden rounded-sm border border-brand-bone/5">
+                            <img src="https://images.unsplash.com/photo-1550355291-bbee04a92027?q=80&w=1200&auto=format&fit=crop" alt="Showroom" class="w-full h-full object-cover opacity-80 hover:scale-105 transition-transform duration-1000 ease-out">
+                            <div class="absolute inset-0 bg-gradient-to-t from-brand-charcoal/80 to-transparent"></div>
+                            <div class="absolute bottom-8 left-8 border border-brand-bone/20 bg-brand-charcoal/80 backdrop-blur-md p-6 max-w-xs">
+                                <p class="font-display text-2xl text-brand-bone mb-1">Est. 2015</p>
+                                <p class="text-xs uppercase tracking-widest text-brand-copper">Defining Luxury</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Text -->
+                    <div class="w-full lg:w-1/2 reveal">
+                        <div class="flex items-center gap-4 mb-6">
+                            <span class="h-[1px] w-12 bg-brand-copper"></span>
+                            <span class="text-xs uppercase tracking-[0.25em] text-brand-copper">About Us</span>
+                        </div>
+                        <h2 class="text-3xl md:text-5xl font-display font-medium text-brand-bone leading-tight mb-8">
+                            Driven by perfection. <br/> <span class="text-brand-bone/40">Curated for the elite.</span>
+                        </h2>
+                        <p class="text-brand-bone/70 text-lg font-light leading-relaxed mb-8">
+                            Manga Autos is more than a dealership; it is a curator of automotive excellence. Located in the heart of Abuja, we specialize in sourcing and delivering the world's most prestigious vehicles.
+                        </p>
+                        <div class="grid grid-cols-2 gap-8 border-t border-brand-bone/10 pt-8">
+                            <div>
+                                <h4 class="text-4xl font-display text-brand-copper mb-2">500+</h4>
+                                <p class="text-xs uppercase tracking-widest text-brand-bone/40">Vehicles Delivered</p>
+                            </div>
+                            <div>
+                                <h4 class="text-4xl font-display text-brand-copper mb-2">98%</h4>
+                                <p class="text-xs uppercase tracking-widest text-brand-bone/40">Client Satisfaction</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Inventory Section -->
+        <section id="inventory" class="py-32 bg-brand-charcoal relative">
+            <div class="container mx-auto px-6 md:px-12">
+                <!-- Header -->
+                <div class="flex flex-col xl:flex-row justify-between items-end mb-16 border-b border-brand-bone/10 pb-8 gap-8 reveal">
+                    <div class="w-full xl:w-auto">
+                        <div class="flex items-center gap-2 mb-2">
+                             <!-- Simple Sparkle Icon SVG -->
+                            <svg class="w-4 h-4 text-brand-copper animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                            <span class="text-[10px] uppercase tracking-[0.25em] text-brand-copper font-medium">Manga AI Curated</span>
+                        </div>
+                        <h2 class="text-4xl md:text-5xl font-display font-medium text-brand-bone">Recent Arrivals</h2>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row gap-6 items-center w-full xl:w-auto flex-wrap">
+                        <!-- Search -->
+                        <div class="relative w-full md:w-64 group">
+                            <input type="text" id="search-input" placeholder="Search any model..." class="w-full bg-transparent border-b border-brand-bone/10 py-2 pl-2 pr-4 text-xs uppercase tracking-wider text-brand-bone placeholder-brand-bone/30 focus:outline-none focus:border-brand-copper transition-colors">
+                        </div>
+                        <!-- Filters -->
+                        <div id="filter-container" class="flex space-x-6 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto hide-scrollbar">
+                            <button class="filter-btn text-xs uppercase tracking-[0.2em] transition-all text-brand-copper border-b border-brand-copper pb-1" data-filter="All">All</button>
+                            <button class="filter-btn text-xs uppercase tracking-[0.2em] transition-all text-brand-bone/40 hover:text-brand-bone pb-1" data-filter="Sport">Sport</button>
+                            <button class="filter-btn text-xs uppercase tracking-[0.2em] transition-all text-brand-bone/40 hover:text-brand-bone pb-1" data-filter="SUV">SUV</button>
+                            <button class="filter-btn text-xs uppercase tracking-[0.2em] transition-all text-brand-bone/40 hover:text-brand-bone pb-1" data-filter="Sedan">Sedan</button>
+                            <button class="filter-btn text-xs uppercase tracking-[0.2em] transition-all text-brand-bone/40 hover:text-brand-bone pb-1" data-filter="Electric">Electric</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid -->
+                <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-20 min-h-[600px]">
+                    <!-- Cars injected via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-24 bg-brand-charcoal relative border-t border-brand-bone/5">
+            <div class="container mx-auto px-6 md:px-12">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+                    <div class="reveal">
+                        <h3 class="text-brand-copper text-lg font-display mb-3">Verified Provenance</h3>
+                        <p class="text-brand-bone/50 text-sm font-light">Every chassis history is meticulously traced and certified by our heritage experts.</p>
+                    </div>
+                    <div class="reveal">
+                        <h3 class="text-brand-copper text-lg font-display mb-3">Concierge Delivery</h3>
+                        <p class="text-brand-bone/50 text-sm font-light">White-glove transport to your residence, ensuring your vehicle arrives pristine.</p>
+                    </div>
+                    <div class="reveal">
+                        <h3 class="text-brand-copper text-lg font-display mb-3">Bespoke Finance</h3>
+                        <p class="text-brand-bone/50 text-sm font-light">Private banking partnerships designed to facilitate seamless acquisition.</p>
+                    </div>
+                    <div class="reveal">
+                        <h3 class="text-brand-copper text-lg font-display mb-3">Lifetime Service</h3>
+                        <p class="text-brand-bone/50 text-sm font-light">Access to our master technicians and global service network.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact / Test Drive -->
+        <section id="contact" class="py-32 bg-brand-graphite relative">
+            <div class="container mx-auto px-6 md:px-12 max-w-6xl">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
+                    <div class="flex flex-col h-full reveal">
+                        <div class="mb-12">
+                            <h2 class="text-4xl md:text-6xl font-display text-brand-bone mb-6">Inquire</h2>
+                            <p class="text-brand-bone/60 font-light text-lg max-w-md">Begin your journey. Schedule a private viewing or test drive with our specialists.</p>
+                        </div>
+                        <div class="w-full flex-grow min-h-[300px] relative overflow-hidden rounded-sm border border-brand-bone/10 bg-brand-charcoal group">
+                            <iframe width="100%" height="100%" class="absolute inset-0 w-full h-full grayscale contrast-125 opacity-70 group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-700 ease-in-out" frameBorder="0" scrolling="no" src="https://maps.google.com/maps?q=No%2034,%20Shehu%20Shagari%20Way,%20Maitama,%20Abuja,%20Nigeria&t=&z=15&ie=UTF8&iwloc=&output=embed"></iframe>
+                            <div class="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/90 to-transparent w-full pointer-events-none">
+                                <p class="text-xs uppercase tracking-widest text-brand-bone">Maitama, Abuja</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col justify-center reveal">
+                         <form onsubmit="event.preventDefault(); window.location.href='mailto:mohdmanga2@gmail.com?subject=Inquiry&body=Hi Manga Autos';" class="space-y-12">
+                            <div class="space-y-8">
+                                <input type="text" placeholder="Name" class="w-full bg-transparent border-b border-brand-bone/20 py-4 text-brand-bone placeholder-brand-bone/20 focus:outline-none focus:border-brand-copper transition-colors font-light text-lg">
+                                <input type="email" placeholder="Email Address" class="w-full bg-transparent border-b border-brand-bone/20 py-4 text-brand-bone placeholder-brand-bone/20 focus:outline-none focus:border-brand-copper transition-colors font-light text-lg">
+                                <textarea rows="3" placeholder="Tell us about your request..." class="w-full bg-transparent border-b border-brand-bone/20 py-4 text-brand-bone placeholder-brand-bone/20 focus:outline-none focus:border-brand-copper transition-colors font-light text-lg resize-none"></textarea>
+                            </div>
+                            <button type="submit" class="group flex items-center space-x-4 text-brand-bone hover:text-brand-copper transition-colors duration-500">
+                                <span class="uppercase tracking-[0.2em] text-sm">Submit Request</span>
+                                <span class="group-hover:translate-x-2 transition-transform">→</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="relative bg-brand-charcoal pt-32 pb-12 overflow-hidden border-t border-brand-bone/5">
+        <!-- Huge Background Text -->
+        <div class="absolute bottom-[-2%] left-0 w-full flex justify-center pointer-events-none select-none z-0">
+            <h1 class="text-[23vw] leading-[0.75] font-display font-black text-brand-bone/[0.03] uppercase tracking-tighter">MANGA</h1>
+        </div>
+        
+        <div class="relative z-20 container mx-auto px-6 md:px-12">
+            <div class="flex flex-col md:flex-row justify-end gap-12 mb-20">
+                <a href="#inventory" class="text-[11px] font-bold uppercase tracking-widest text-brand-bone hover:text-brand-copper">Collection</a>
+                <a href="#about" class="text-[11px] font-bold uppercase tracking-widest text-brand-bone hover:text-brand-copper">The Brand</a>
+                <a href="#contact" class="text-[11px] font-bold uppercase tracking-widest text-brand-bone hover:text-brand-copper">Inquire</a>
+            </div>
+            
+            <div class="flex flex-col xl:flex-row justify-between items-end gap-12">
+                <div class="text-[11px] font-medium uppercase tracking-wider text-brand-bone/50">
+                    © 2025 MANGA AUTOS. <br/>
+                    <a href="https://www.instagram.com/manga_automobiles" class="hover:text-brand-bone mt-2 inline-block">Instagram</a>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-brand-copper block mb-2">Flagship Showroom</span>
+                    <address class="not-italic text-brand-bone/60 text-xs font-medium uppercase tracking-wider">
+                        No 34, Shehu Shagari Way<br/>Maitama, Abuja<br/>Nigeria
+                    </address>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Logic Script (Standard, Non-Module for Local Compatibility) -->
+    <script>
+        // --- Data ---
+        const cars = [
+            { id: 1, brand: 'Lamborghini', model: 'Aventador SVJ', price: 550000, category: 'Sport', image: 'https://images.unsplash.com/photo-1519245659620-e859806a8d3b?q=75&w=800&auto=format&fit=crop', specs: { hp: 759, zeroToSixty: '2.8s' } },
+            { id: 2, brand: 'Mercedes-Benz', model: 'C300 4MATIC', price: 48000, category: 'Sedan', image: 'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?q=75&w=800&auto=format&fit=crop', specs: { hp: 255, zeroToSixty: '6.0s' } },
+            { id: 3, brand: 'BMW', model: 'M3 Competition', price: 76000, category: 'Sedan', image: 'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?q=75&w=800&auto=format&fit=crop', specs: { hp: 503, zeroToSixty: '3.8s' } },
+            { id: 4, brand: 'Toyota', model: 'Camry 2025', price: 32000, category: 'Sedan', image: 'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?q=75&w=800&auto=format&fit=crop', specs: { hp: 225, zeroToSixty: '7.0s' } },
+            { id: 5, brand: 'Tesla', model: 'Model S Plaid', price: 89990, category: 'Electric', image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=75&w=800&auto=format&fit=crop', specs: { hp: 1020, zeroToSixty: '1.99s' } },
+            { id: 6, brand: 'Audi', model: 'R8 V10', price: 158600, category: 'Sport', image: 'https://images.unsplash.com/photo-1614026480418-bd11fdb9fa06?q=75&w=800&auto=format&fit=crop', specs: { hp: 602, zeroToSixty: '3.1s' } }
+        ];
+
+        const slides = [
+            { image: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?q=75&w=1920&auto=format&fit=crop', subtitle: 'Est. 2015', title: 'BEST IN TOWN', highlight: 'PREMIUM SELECTION' },
+            { image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=75&w=1920&auto=format&fit=crop', subtitle: 'The Best or Nothing', title: 'MERCEDES-BENZ', highlight: 'TIMELESS LUXURY' },
+            { image: 'https://images.unsplash.com/photo-1614026480418-bd11fdb9fa06?q=75&w=1920&auto=format&fit=crop', subtitle: 'Vorsprung durch Technik', title: 'AUDI', highlight: 'MODERN INNOVATION' },
+        ];
+
+        // --- State ---
+        let currentFilter = 'All';
+        let currentSlide = 0;
+        let searchQuery = '';
+
+        // --- DOM Elements ---
+        let grid, slideContainer, heroTitle, heroSubtitle, heroHighlight, heroTextContainer, indicatorsContainer;
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Grab Elements
+            grid = document.getElementById('inventory-grid');
+            slideContainer = document.getElementById('hero-slides');
+            heroTitle = document.getElementById('hero-title');
+            heroSubtitle = document.getElementById('hero-subtitle');
+            heroHighlight = document.getElementById('hero-highlight');
+            heroTextContainer = document.getElementById('hero-text-container');
+            indicatorsContainer = document.getElementById('slide-indicators');
+            
+            // Start App
+            initHero();
+            renderInventory();
+            initObservers();
+            initMobileMenu();
+            initSearch();
+
+            // Reveal Content / Hide Loader
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                if(loader) {
+                    loader.classList.add('loaded');
+                    setTimeout(() => loader.classList.add('hidden'), 800);
+                }
+            }, 500);
+        });
+
+        // --- Inventory Logic ---
+        function renderInventory() {
+            if(!grid) return;
+            grid.innerHTML = '';
+            
+            const filtered = cars.filter(car => {
+                const matchesCategory = currentFilter === 'All' || car.category === currentFilter;
+                const matchesSearch = car.brand.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                      car.model.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesCategory && matchesSearch;
+            });
+
+            if(filtered.length === 0) {
+                 grid.innerHTML = `<div class="col-span-1 md:col-span-3 text-center py-12 text-brand-bone/40 uppercase tracking-widest text-sm">No vehicles found.</div>`;
+                 return;
+            }
+
+            filtered.forEach(car => {
+                const card = document.createElement('div');
+                card.className = "group cursor-pointer hover:-translate-y-2 transition-transform duration-500 ease-out";
+                card.innerHTML = `
+                    <div class="relative aspect-[4/3] overflow-hidden mb-6 bg-brand-graphite shadow-sm border border-transparent group-hover:border-brand-copper/30 rounded-sm">
+                        <img src="${car.image}" alt="${car.model}" class="w-full h-full object-cover transition-transform duration-[1.5s] ease-in-out group-hover:scale-110 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40"></div>
+                        
+                        <div class="absolute bottom-0 left-0 right-0 p-6 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out bg-black/60 backdrop-blur-sm border-t border-brand-bone/10">
+                            <div class="grid grid-cols-2 gap-2 text-center text-[10px] text-brand-bone/60">
+                                <div><span class="block text-brand-copper">${car.specs.hp} HP</span>Power</div>
+                                <div><span class="block text-brand-copper">${car.specs.zeroToSixty}</span>0-60 mph</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-start border-t border-brand-bone/10 pt-4 px-1">
+                        <div>
+                            <h3 class="text-brand-bone/60 text-xs uppercase tracking-widest mb-1">${car.brand}</h3>
+                            <h2 class="text-xl font-display text-brand-bone group-hover:text-white">${car.model}</h2>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-brand-copper font-light tracking-wide mt-1">₦${(car.price * 1650).toLocaleString()}</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- Hero Logic ---
+        function initHero() {
+            if(!slideContainer) return;
+            
+            // Render Slides
+            slideContainer.innerHTML = slides.map((s, i) => `
+                <img src="${s.image}" class="hero-slide w-full h-full object-cover object-center ${i === 0 ? 'active' : ''}" data-index="${i}">
+            `).join('');
+
+            // Render Indicators
+            indicatorsContainer.innerHTML = slides.map((_, i) => `
+                <button class="indicator h-[2px] transition-all duration-700 ease-in-out cursor-pointer ${i === 0 ? 'w-12 bg-brand-copper' : 'w-4 bg-brand-bone/30'}" onclick="setSlide(${i})"></button>
+            `).join('');
+
+            // Auto Play
+            setInterval(() => {
+                const next = (currentSlide + 1) % slides.length;
+                updateSlide(next);
+            }, 6000);
+        }
+
+        window.setSlide = (index) => {
+            updateSlide(index);
+        };
+
+        function updateSlide(index) {
+            currentSlide = index;
+            
+            // Images
+            document.querySelectorAll('.hero-slide').forEach(el => {
+                el.classList.toggle('active', parseInt(el.dataset.index) === index);
+            });
+
+            // Indicators
+            const indicators = document.querySelectorAll('.indicator');
+            indicators.forEach((el, i) => {
+                el.className = `indicator h-[2px] transition-all duration-700 ease-in-out cursor-pointer ${i === index ? 'w-12 bg-brand-copper' : 'w-4 bg-brand-bone/30'}`;
+            });
+
+            // Text Animation (Fade Out -> Change -> Fade In)
+            if(heroTextContainer) {
+                heroTextContainer.style.opacity = '0';
+                setTimeout(() => {
+                    const data = slides[index];
+                    heroSubtitle.innerText = data.subtitle;
+                    heroTitle.innerText = data.title;
+                    heroHighlight.innerText = data.highlight;
+                    heroTextContainer.style.opacity = '1';
+                }, 500);
+            }
+        }
+
+        // --- Event Listeners ---
+        function initSearch() {
+             // Filter Click Handlers
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-btn').forEach(b => {
+                        b.classList.remove('text-brand-copper', 'border-b', 'border-brand-copper');
+                        b.classList.add('text-brand-bone/40');
+                    });
+                    e.target.classList.remove('text-brand-bone/40');
+                    e.target.classList.add('text-brand-copper', 'border-b', 'border-brand-copper');
+                    currentFilter = e.target.getAttribute('data-filter');
+                    renderInventory();
+                });
+            });
+
+            // Search Handler
+            const searchInput = document.getElementById('search-input');
+            let debounceTimer;
+            if(searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        searchQuery = e.target.value;
+                        renderInventory();
+                    }, 300);
+                });
+            }
+        }
+
+        // --- Scroll Animations ---
+        function initObservers() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+            // Navbar Scroll
+            window.addEventListener('scroll', () => {
+                const nav = document.getElementById('navbar');
+                if(!nav) return;
+                
+                if (window.scrollY > 50) {
+                    nav.classList.add('glass-panel', 'py-4');
+                    nav.classList.remove('bg-transparent', 'py-8');
+                } else {
+                    nav.classList.remove('glass-panel', 'py-4');
+                    nav.classList.add('bg-transparent', 'py-8');
+                }
+            });
+        }
+
+        // --- Mobile Menu ---
+        function initMobileMenu() {
+            const toggle = document.getElementById('mobile-toggle');
+            const menu = document.getElementById('mobile-menu');
+            const links = document.querySelectorAll('.mobile-link');
+            let isOpen = false;
+
+            if(!toggle || !menu) return;
+
+            toggle.addEventListener('click', () => {
+                isOpen = !isOpen;
+                if(isOpen) {
+                    menu.classList.remove('opacity-0', 'pointer-events-none');
+                    menu.classList.add('opacity-100', 'pointer-events-auto');
+                } else {
+                    menu.classList.remove('opacity-100', 'pointer-events-auto');
+                    menu.classList.add('opacity-0', 'pointer-events-none');
+                }
+            });
+
+            links.forEach(link => {
+                link.addEventListener('click', () => {
+                    isOpen = false;
+                    menu.classList.remove('opacity-100', 'pointer-events-auto');
+                    menu.classList.add('opacity-0', 'pointer-events-none');
+                });
+            });
+        }
+    </script>
+</body>
 </html>
